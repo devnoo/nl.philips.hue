@@ -13,6 +13,7 @@ class App extends Homey.App {
 		
 		this._onBridge = this._onBridge.bind(this);
 		this._onFlowActionSetScene = this._onFlowActionSetScene.bind(this);
+		this._onFlowActionSetSceneForGroup = this._onFlowActionSetSceneForGroup.bind(this);
 		this._onFlowActionGroupOn = this._onFlowActionGroupOn.bind(this);
 		this._onFlowActionGroupOff = this._onFlowActionGroupOff.bind(this);
 		this._onSceneAutocomplete = this._onSceneAutocomplete.bind(this);
@@ -36,7 +37,14 @@ class App extends Homey.App {
 			.registerRunListener( this._onFlowActionSetScene )
 			.getArgument('scene')
 			.registerAutocompleteListener( this._onSceneAutocomplete );
-			
+		let setSceneForGroup = new Homey.FlowCardAction('setSceneForGroup')
+			.register()
+			.registerRunListener( this._onFlowActionSetScene );
+		setSceneForGroup.getArgument('scene')
+			.registerAutocompleteListener( this._onSceneAutocomplete );
+		setSceneForGroup.getArgument('group')
+            .registerAutocompleteListener( this._onGroupAutocomplete );
+
 		new Homey.FlowCardAction('groupOn')
 			.register()
 			.registerRunListener( this._onFlowActionGroupOn )
@@ -80,7 +88,18 @@ class App extends Homey.App {
 
 		return bridge.setScene( args.scene.id );		
 	}
-	
+    _onFlowActionSetSceneForGroup( args ) {
+		let bridge = this.getBridge( args.scene.bridge_id );
+		if( bridge instanceof Error ) return Promise.reject( bridge );
+
+        return bridge.getGroup( args.group.id )
+            .then(group => {
+                group.scene = args.scene.id;
+                return bridge.saveGroup( group )
+            })
+		return bridge.setScene( args.scene.id );
+	}
+
 	_onFlowActionGroupOn( args ) {
 		this._onFlowActionGroup( args, true );		
 	}
